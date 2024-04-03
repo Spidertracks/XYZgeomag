@@ -42,6 +42,15 @@ Modifications are:
 #ifndef GEOMAG_HPP
 #define GEOMAG_HPP
 
+/* Selects the floating-point precision to use. */
+#if defined(XYZgeomag_DOUBLE_PRECISION)
+  typedef double Precision;
+#elif defined(XYZgeomag_SINGLE_PRECISION)
+  typedef float real_t;
+#else
+  #error "Define the floating-point precision using either XYZgeomag_DOUBLE_PRECISION or XYZgeomag_SINGLE_PRECISION"
+#endif
+
 #include <math.h>
 
 namespace geomag
@@ -50,12 +59,12 @@ constexpr int NMAX= 12;//order of the Model
 constexpr int NUMCOF= (NMAX+1)*(NMAX+2)/2;//number of coefficents
 struct ConstModel{
     float epoch;//decimal year
-    float Main_Field_Coeff_C[NUMCOF];
-    float Main_Field_Coeff_S[NUMCOF];
-    float Secular_Var_Coeff_C[NUMCOF];
-    float Secular_Var_Coeff_S[NUMCOF];
+    Precision Main_Field_Coeff_C[NUMCOF];
+    Precision Main_Field_Coeff_S[NUMCOF];
+    Precision Secular_Var_Coeff_C[NUMCOF];
+    Precision Secular_Var_Coeff_S[NUMCOF];
     /** Function for indexing the C spherical component n,m at dyear time.*/
-    inline float C(int n, int m, float dyear) const{
+    inline Precision C(int n, int m, float dyear) const{
       int index= (m*(2*NMAX-m+1))/2+n;
       #ifdef PROGMEM
         return pgm_read_float_near(Main_Field_Coeff_C+index)+(dyear-epoch)*pgm_read_float_near(Secular_Var_Coeff_C+index);
@@ -63,7 +72,7 @@ struct ConstModel{
       return Main_Field_Coeff_C[index]+(dyear-epoch)*Secular_Var_Coeff_C[index];
     }
     /** Function for indexing the S spherical component n,m at dyear time.*/
-    inline float S(int n, int m, float dyear) const{
+    inline Precision S(int n, int m, float dyear) const{
       int index= (m*(2*NMAX-m+1))/2+n;
       #ifdef PROGMEM
         return pgm_read_float_near(Main_Field_Coeff_S+index)+(dyear-epoch)*pgm_read_float_near(Secular_Var_Coeff_S+index);
@@ -72,26 +81,26 @@ struct ConstModel{
     }
 };
 //mean radius of  ellipsoid in meters from section 1.2 of the WMM2015 Technical report
-constexpr float EARTH_R= 6371200.0f;
+constexpr Precision EARTH_R= 6371200.0;
 
 typedef struct {
-    float x;
-    float y;
-    float z;
+    Precision x;
+    Precision y;
+    Precision z;
 } Vector;
 
 
 typedef struct {
-    float north;// local north magnetic field (nT)
-    float east;// local east magnetic field (nT)
-    float down;// local down magnetic field (nT)
-    float horizontal;// local horizontal magnetic field intensity (nT)
-    float total;// local total magnetic field intensity (nT)
-    float inclination;// also called the dip angle, 
-    // the angle measured from the horizontal plane to the 
+    Precision north;// local north magnetic field (nT)
+    Precision east;// local east magnetic field (nT)
+    Precision down;// local down magnetic field (nT)
+    Precision horizontal;// local horizontal magnetic field intensity (nT)
+    Precision total;// local total magnetic field intensity (nT)
+    Precision inclination;// also called the dip angle,
+    // the angle measured from the horizontal plane to the
     // magnetic field vector; a downward field is positive (deg)
-    float declination;// also called the magnetic variation,
-    // the angle between true north and the horizontal component 
+    Precision declination;// also called the magnetic variation,
+    // the angle between true north and the horizontal component
     // of the field, a eastward magnetic field of true North is positive (deg)
 } Elements;
 
@@ -103,24 +112,24 @@ https://www.ngdc.noaa.gov/geomag/icons/faqelems.gif for more info.
     lat: latitude in degrees, -90 at the south pole, 90 at the north pole.
     lon: longitude in degrees.
 **/
-inline Elements magField2Elements(Vector mag_field_itrs, float lat, float lon){
-    float x = mag_field_itrs.x*1E9f;
-    float y = mag_field_itrs.y*1E9f;
-    float z = mag_field_itrs.z*1E9f;
-    float phi = lat*((float)(M_PI/180.0));
-    float lam = lon*((float)(M_PI/180.0));
-    float sphi = sinf(phi);
-    float cphi = cosf(phi);
-    float slam = sinf(lam);
-    float clam = cosf(lam);
-    float x1 = clam*x + slam*y;
-    float north = -sphi*x1 + cphi*z;
-    float east = -slam*x + clam*y;
-    float down = -cphi*x1 + -sphi*z;
-    float horizontal = sqrtf(north*north + east*east);
-    float total = sqrtf(horizontal*horizontal + down*down);
-    float inclination = atan2f(down, horizontal)*((float)(180.0/M_PI));
-    float declination = atan2f(east, north)*((float)(180.0/M_PI));
+inline Elements magField2Elements(Vector mag_field_itrs, Precision lat, Precision lon){
+    Precision x = mag_field_itrs.x*1E9f;
+    Precision y = mag_field_itrs.y*1E9f;
+    Precision z = mag_field_itrs.z*1E9f;
+    Precision phi = lat*((Precision)(M_PI/180.0));
+    Precision lam = lon*((Precision)(M_PI/180.0));
+    Precision sphi = std::sin(phi);
+    Precision cphi = std::cos(phi);
+    Precision slam = std::sin(lam);
+    Precision clam = std::cos(lam);
+    Precision x1 = clam*x + slam*y;
+    Precision north = -sphi*x1 + cphi*z;
+    Precision east = -slam*x + clam*y;
+    Precision down = -cphi*x1 + -sphi*z;
+    Precision horizontal = std::sqrt(north*north + east*east);
+    Precision total = std::sqrt(horizontal*horizontal + down*down);
+    Precision inclination = std::atan2(down, horizontal)*((Precision)(180.0/M_PI));
+    Precision declination = std::atan2(east, north)*((Precision)(180.0/M_PI));
     return {north, east, down, horizontal, total, inclination, declination};
 }
 
@@ -132,22 +141,22 @@ Using the WGS 84 ellipsoid and the algorithm from https://geographiclib.sourcefo
     lon: Geodetic longitude in degrees.
     h: Height above the WGS 84 ellipsoid in meters.
 **/
-inline Vector geodetic2ecef(float lat, float lon, float h){
+inline Vector geodetic2ecef(Precision lat, Precision lon, Precision h){
     // Convert to radians
-    float phi = lat*((float)(M_PI/180.0));
-    float lam = lon*((float)(M_PI/180.0));
+    Precision phi = lat*((Precision)(M_PI/180.0));
+    Precision lam = lon*((Precision)(M_PI/180.0));
     // WGS 84 constants
-    const float a = 6378137;
-    // const float f = 1.0/298.257223563;
-    const float e2 = 0.0066943799901413165;//f*(2-f);
-    const float e2m = 0.9933056200098587;//(1-f)*(1-f);
-    float sphi = sinf(phi);
-    float cphi = cosf(phi);
-    float slam = sinf(lam);
-    float clam = cosf(lam);
-    float n = a/sqrtf(1.0f - e2*(sphi*sphi));
-    float z = (e2m*n + h) * sphi;
-    float r = (n + h) * cphi;
+    const Precision a = 6378137;
+    // const Precision f = 1.0/298.257223563;
+    const Precision e2 = 0.0066943799901413165;//f*(2-f);
+    const Precision e2m = 0.9933056200098587;//(1-f)*(1-f);
+    Precision sphi = std::sin(phi);
+    Precision cphi = std::cos(phi);
+    Precision slam = std::sin(lam);
+    Precision clam = std::cos(lam);
+    Precision n = a/std::sqrt(1.0f - e2*(sphi*sphi));
+    Precision z = (e2m*n + h) * sphi;
+    Precision r = (n + h) * cphi;
     return {r*clam, r*slam, z};
 }
 
@@ -159,27 +168,27 @@ inline Vector geodetic2ecef(float lat, float lon, float h){
     WMM(): Magnetic field model to use.
  */
 inline Vector GeoMag(float dyear,Vector position_itrs, const ConstModel& WMM){
-    float x= position_itrs.x;
-    float y= position_itrs.y;
-    float z= position_itrs.z;
-    float px= 0;
-    float py= 0;
-    float pz= 0;
-    float rsqrd= x*x+y*y+z*z;
-    float temp= EARTH_R/rsqrd;
-    float a= x*temp;
-    float b= y*temp;
-    float f= z*temp;
-    float g= EARTH_R*temp;
+    Precision x= position_itrs.x;
+    Precision y= position_itrs.y;
+    Precision z= position_itrs.z;
+    Precision px= 0;
+    Precision py= 0;
+    Precision pz= 0;
+    Precision rsqrd= x*x+y*y+z*z;
+    Precision temp= EARTH_R/rsqrd;
+    Precision a= x*temp;
+    Precision b= y*temp;
+    Precision f= z*temp;
+    Precision g= EARTH_R*temp;
 
     int n,m;
     //first m==0 row, just solve for the Vs
-    float Vtop= EARTH_R/sqrtf(rsqrd);//V0,0
-    float Wtop= 0;//W0,0
-    float Vprev= 0;
-    float Wprev= 0;
-    float Vnm= Vtop;
-    float Wnm= Wtop;
+    Precision Vtop= EARTH_R/std::sqrt(rsqrd);//V0,0
+    Precision Wtop= 0;//W0,0
+    Precision Vprev= 0;
+    Precision Wprev= 0;
+    Precision Vnm= Vtop;
+    Precision Wnm= Wtop;
 
     //iterate through all ms
     for ( m = 0; m <= NMAX+1; m++)
@@ -200,7 +209,7 @@ inline Vector GeoMag(float dyear,Vector position_itrs, const ConstModel& WMM){
             }
             else{
                 temp= Vnm;
-                float invs_temp=1.0f/((float)(n-m));
+                Precision invs_temp=1.0f/((Precision)(n-m));
                 Vnm= ((2*n-1)*f*Vnm - (n+m-1)*g*Vprev)*invs_temp;
                 Vprev= temp;
                 temp= Wnm;
