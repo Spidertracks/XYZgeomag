@@ -46,7 +46,7 @@ Modifications are:
 #if defined(XYZgeomag_DOUBLE_PRECISION)
   typedef double TPrecision;
 #elif defined(XYZgeomag_SINGLE_PRECISION)
-  typedef float real_t;
+  typedef float TPrecision;
 #else
   #error "Define the floating-point precision using either XYZgeomag_DOUBLE_PRECISION or XYZgeomag_SINGLE_PRECISION"
 #endif
